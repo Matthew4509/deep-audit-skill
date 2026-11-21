@@ -11,8 +11,8 @@ Every rule below was paid for by a real fault found in a real project.
 ## 0. The brief to paste into a new audit thread
 
 > Audit `<project folder>` using the deep-audit skill and its `RULE-KIT.md`. Run a scanner if you have one, then do
-> the manual passes in the kit in order. Report only: never edit, commit or release the project. Live host: plain
-> GETs only. Write the report into the project as `AUDIT-<date>-DEEP.md` and keep everything else in `audit-work/`.
+> the manual passes in the kit in order. Report only: never edit, commit or release the project. Send nothing to any
+> live site. Write the report into the project as `AUDIT-<date>-DEEP.md` and keep everything else in `audit-work/`.
 
 ---
 
@@ -20,18 +20,16 @@ Every rule below was paid for by a real fault found in a real project.
 
 1. **Audit finds, the project thread fixes.** An audit never edits code, commits, builds a release or uploads. The
    only write inside a project is the audit report. Everything else goes in `audit-work/`.
-2. **Live gets plain GETs only, one each, about 10 seconds apart.** A quick burst can get your own IP blocked by the
-   host's firewall. Send only the addresses the check needs. If two different addresses come back with the same body
-   (same byte count), or a page says "Unauthorized Access", STOP: that is a block page or a catch-all, and nothing
-   fetched after it is evidence. No POST, upload, limit, race, sign-in or account replay against a live host, ever.
-   Anything that sends data runs on a local copy (`php -S` on a scratch copy, the project's own dev server, a local
-   database).
+2. **The audit never contacts a live site.** No request of any kind (not even a GET) goes to a real domain, the
+   project's own included. Everything runs on the code and a local copy (`php -S` on a scratch copy, the project's
+   own dev server, a local database). Checks that only the live server can answer go into an **owner's checklist**
+   at the end of the report: plain steps the owner does themselves, in their own browser, on a site they own.
 3. **A serious fault anywhere is a check everywhere.** When a High is found in one project you look after, check the
    others for the same class.
 4. **No attack payloads in writing.** Reports and agent briefs describe the fault in plain words (title, file:line,
    severity, what shows it, proposed fix, what ran). No step-by-step exploit commands, no crafted payload strings, no
    leaked values copied. Payloads live only in test files.
-5. **Evidence is file:line or a request.** Every claim names the file and line, or the exact GET and its status.
+5. **Evidence is file:line or a request.** Every claim names the file and line, or the exact local request and its status.
    "Probably" is not a finding; it is a question for the checked-and-guarded list.
 6. **Report only what actually ran.** Each finding says whether it was observed, replayed locally, or code reading
    only. The report's coverage table lists what was NOT run and why.
@@ -43,7 +41,7 @@ Every rule below was paid for by a real fault found in a real project.
     on a port nobody else uses (8900-8999, check nothing listens there first), and before sending anything, GET a
     file only your copy has and compare it.
 11. **"Fixed" has three states: in the tree, in the release package, live.** Never write "fixed" without saying
-    which. Before confirming a fix holds, check the live bundle or page carries it.
+    which. Whether the live site carries a fix goes on the owner's checklist.
 
 ---
 
@@ -59,8 +57,8 @@ Every rule below was paid for by a real fault found in a real project.
 | 5 | Pass B: uploads and decoding, with the crafted set on a local copy (section 4) | findings + what ran |
 | 6 | Pass C: money (section 5) | findings |
 | 7 | Pass D: state changes, links, feeds, outbound fetches (section 6) | findings |
-| 8 | Pass E: the shipped package and the live server (section 7) | findings |
-| 8b | Pass E2: secrets and keys, in source, history, bundles, packages and live (section 7b) | findings |
+| 8 | Pass E: the shipped package and the server config (section 7) | findings + owner's checklist |
+| 8b | Pass E2: secrets and keys, in source, history, bundles and packages (section 7b) | findings |
 | 9 | Pass F: claims vs code: privacy page, labels, site copy, docs (section 8) | findings |
 | 10 | Pass G: the project's own tests: run them, break one on purpose, look for dead suites (section 9) | findings |
 | 10b | Pass H: performance and scale (section 9b) | findings |
@@ -253,7 +251,11 @@ Also:
   logged IP whatever the caller writes.
 - **Anonymous status endpoints** say only what a stranger needs.
 
-## 7. Pass E: the shipped package and the live server
+## 7. Pass E: the shipped package and the server config
+
+Read the release package and the server config files on disk, and run the package on a local server. Never fetch the
+live site. Where a check below can only be answered live (headers the host adds, DNS, old folders on the host), write
+it into the owner's checklist as a plain step instead.
 
 - **A fix is not done until the shipped package contains it.** List the package; compare with the tree. Two builds
   must never share a version number.
@@ -264,8 +266,8 @@ Also:
   allowed in .htaccess; a folder with its own `RewriteEngine On` does not inherit the root's https redirect; a
   dotfile deny rule needs a `/.well-known/` exemption.
 - **Headers are read from the production stack, per page type.** Some servers replace a header the app sent; local
-  dev servers ignore .htaccess. Diff live vs a local run of the same package on home, a static file, a 404, an app
-  page, a JSON route.
+  dev servers ignore .htaccess. Read the headers the config sets for home, a static file, a 404, an app page and a
+  JSON route; the owner compares them with the live site (checklist).
 - **HSTS and CSP belong to the server config** so static pages and error pages carry them too.
 - **A CSP present is not a CSP adequate.** It needs `default-src` or `script-src`; `'unsafe-inline'` in script-src
   without a nonce or hash is Medium. A policy only in a `<meta>` tag cannot set frame-ancestors.
@@ -275,13 +277,13 @@ Also:
 - **Every endpoint the shipped front end calls is in the release; every asset in the release is used.**
 - **A source export, a test page or a diagnostic page in the web root is a High** until it is refused.
 - **Error handling does not rely on the host's config**: the app turns error display off and registers handlers.
-- **Version stamp**: the live bundle names its version; compare with the tree before saying anything is "live".
-  What a handoff says is live is checked, not believed.
+- **Version stamp**: the built bundle names its version, so the owner can see which release is live. What a
+  handoff says is live is not evidence.
 - **Crawlability on the served HTML** (not the rendered app): html lang, one h1, title, meta description,
   canonical, real `<a href>` navigation, text without JavaScript, a 404 for unknown addresses.
 - **Outside hosts for images and fonts** count as third parties (they receive the reader's page address).
-- **Old copies and second hosts.** GET /old/, /dev/, /staging/, /test/, /backup/; the www host and the bare host;
-  every folder of the web root for a directory listing. Walk the live host for anything the docs don't mention.
+- **Old copies and second hosts** (owner's checklist): old folders such as /old/, /dev/, /staging/, /backup/ left on
+  the host, the www and bare host serving duplicates, folders that list their files.
 - **The Permissions-Policy allows what the site uses** (a policy blocking geolocation breaks a "Share my location"
   button silently).
 - **Cache headers and releases.** Assets cached for a year must change name each release.
@@ -295,7 +297,7 @@ Also:
   `.env*`, and **git history** (`git log -p`, including deleted files). Weak defaults count (`secret`,
   `changeme`, a sample config's value used live). A key that was ever committed or shipped is rotated, not only
   deleted.
-- **Disclosure:** search the repo, git history, the package and live pages for private details, local PC paths,
+- **Disclosure:** search the repo, git history and the package for private details, local PC paths,
   other projects' names and AI/prompt text. Never copy a leaked value into the report; name the label and the file.
 
 ## 7b. Pass E2: secrets and keys
@@ -326,10 +328,9 @@ value into the report: name the kind of key and the file:line.
   writes without sign-in. The public anon key or web config is all anyone needs: High.
 - **Key files in served folders:** service-account JSON, `.env`, editor FTP/SFTP settings (`sftp.json`,
   `.ftpconfig`), database dumps, `.bak` copies, archives, logs.
-- **Live check (plain GETs only):** `/.env`, `/.env.local`, `/.env.production`, `/.git/HEAD`, `/.git/config`,
-  `/backup.zip`, `/database.sql`, `/config.php.bak`, `/phpinfo.php`, `/error_log`, `/package.json`,
-  `/composer.json`, `/.vscode/sftp.json`. Compare the body to what the file would hold; a 200 with the home page is a
-  catch-all, not a leak.
+- **Files that would be served:** list what in the package or web root would be downloadable (`.env*`, `.git/`,
+  backups, dumps, `phpinfo` pages, error logs, package lists, `.vscode/sftp.json`) and whether a deny rule covers
+  each. The owner's checklist names the ones to try in their own browser on their own site.
 - **Secrets in logs**: a token, password, key or session written to a log line.
 - **Secrets in the address bar or browser storage**: a token from the URL kept in localStorage.
 - **Rotation:** a key that was ever committed, shipped or served is rotated, not only deleted. Say so in the fix.
@@ -399,7 +400,7 @@ A rate limit controls speed; a usage limit controls how much one caller can spen
 
 ## 9d. Pass I: the functional and visual walk
 
-In a real browser, on the live site (reading only) or a local run of the shipped build:
+In a real browser, on a local run of the shipped build:
 
 - Press every button and follow every tour; each label must do what it says, and every confirm must appear (a
   confirm blocked by the CSP is a wipe without asking).
@@ -482,8 +483,7 @@ Each finding: id, title, severity, category, where (file:line), evidence (plain 
 never copy it), the failing test's path, siblings found by the variant hunt, proposed fix, and what ran
 ([ran] or [read]). Add a **checked and guarded** list: what was checked and found safe, so the coverage is visible.
 
-When a pasted result from an outside scanner arrives, check every item against the code, DNS and one slow GET
-before it goes anywhere; rank by evidence, not the tool's label. Lookalike-domain warnings are usually an unrelated
+When a pasted result from an outside scanner arrives, check every item against the code before it goes anywhere; rank by evidence, not the tool's label. Lookalike-domain warnings are usually an unrelated
 real business (own site, own mail). A rescan that suddenly gets WORSE on every page at once probably read a block
 page.
 

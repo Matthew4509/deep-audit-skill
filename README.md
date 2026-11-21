@@ -3,7 +3,7 @@
 A Claude Code skill for a cold, test-first audit of one web project. It reports faults and never edits the code.
 
 It inventories every route, form, write and outside call, then works through a set of passes: accounts and
-access, uploads, money, secrets and API keys, the shipped package and live server, claims against code, the
+access, uploads, money, secrets and API keys, the shipped package and server config, claims against code, the
 project's own tests, cost limits, risky code shapes, AI agent files, failure injection, concurrency and dates,
 error recovery and hostile input. Every finding gets a failing test and a search for siblings. A second agent then
 tries to disprove each one.
@@ -32,8 +32,9 @@ On Windows the skills folder is `%USERPROFILE%\.claude\skills\`. Then open Claud
 
 ## Safety
 
-The audit sends only plain GET requests to a live site, slowly. Anything that posts data runs on a local copy
-with mail, payments and outside APIs stubbed. Reports describe faults in plain words; keys found are named by
+The audit never contacts a live site. It reads your code and runs everything on a local copy, with mail, payments
+and outside APIs stubbed. Checks only a live server can answer are listed at the end of the report for you to do
+yourself, on your own site. Reports describe faults in plain words; keys found are named by
 kind and location, never copied.
 
 ## Licence

@@ -13,7 +13,7 @@ Audit output (tests, notes, scan results) goes in an `audit-work/<date>-<project
 
 ## 0. Ground rules (on top of RULE-KIT section 1)
 
-1. **Live sites: plain GETs only, one each, about 10 s apart** (RULE-KIT rule 2). Never send a form post, sign-in, upload, payment, rate-limit test or loop to a real domain. Everything that sends data runs on a local copy.
+1. **Never contact a live site** (RULE-KIT rule 2). No request of any kind goes to a real domain. Everything runs on the code and a local copy. Checks only the live server can answer go into the owner's checklist in the report.
 2. **Your own server, your own port.** Use a port from 8900-8999 and check that nothing is listening there first. Kill only your own servers, by PID. Run at most 3 background tasks.
 3. **Stub mail, payments and outside APIs.** Never let a probe reach a real provider.
 4. **Prove nothing changed.** Hash the project's tracked files at the start and at the end, and put both hashes in the report. Note any uncommitted edits that were there before you started, and leave them alone.
@@ -53,7 +53,7 @@ A rule is easier to break on purpose than "find bugs". Most good findings are a 
 
 If you have a pattern scanner (Semgrep, a linter with security rules, your own regex scanner), run it first. Keep or drop each item it raises, with a reason. Scanners only match patterns: they cannot follow data, so a clean scan proves little.
 
-Then run **RULE-KIT passes A to J** in the kit's order: A accounts, A2 identity matrix, B uploads with the crafted set, C money, D state, links and feeds, E the shipped package and the live server, E2 secrets and keys, F claims against code, G the project's own tests, H performance, J cost, I the walk in a real browser, O risky code shapes, P AI agent files. Then run the new passes:
+Then run **RULE-KIT passes A to J** in the kit's order: A accounts, A2 identity matrix, B uploads with the crafted set, C money, D state, links and feeds, E the shipped package and the server config, E2 secrets and keys, F claims against code, G the project's own tests, H performance, J cost, I the walk in a real browser, O risky code shapes, P AI agent files. Then run the new passes:
 
 ### Pass K: failure injection (the most important one)
 
@@ -117,7 +117,8 @@ Write `AUDIT-<date>-DEEP.md` in the project folder (the only file you create ins
 4. the new findings, P0 to P3, each with its test, siblings and evidence;
 5. the coverage table from the inventory (tested / not reached / why);
 6. the counts: new tests, passed, failed, findings, false flags removed by the verifier;
-7. what was not done (no real browser, no live server, payments stubbed…).
+7. what was not done (no real browser, payments stubbed…);
+8. the owner's checklist: the live-site checks the audit did not run, as plain steps for the owner to do in their own browser on their own site.
 
 End with a 5-line summary. Never claim 100 percent (RULE-KIT rule 9).
 
