@@ -292,7 +292,9 @@ it into the owner's checklist as a plain step instead.
 - **CDN libraries carry `integrity=`.** Only for pinned public-CDN libraries; never for scripts that change by design
   (analytics, Stripe, captcha).
 - **A build step breaks every reader.** When the build minifies or rewrites files, run every regex/parse that reads
-  them against the BUILT package, not the source.
+  them against the BUILT package, not the source. Look for server code that reads a shipped `.js` or `.css` file as
+  data (`file_get_contents`, `strpos`, `preg_match` on a literal with spaces or quotes): minifying changes the text,
+  so the live page fails or silently uses a fallback. Test: unpack the release and call the reader on it.
 - **Secrets everywhere they can hide:** the source, the built bundles, the release package, config and deploy files,
   `.env*`, and **git history** (`git log -p`, including deleted files). Weak defaults count (`secret`,
   `changeme`, a sample config's value used live). A key that was ever committed or shipped is rotated, not only
@@ -393,6 +395,8 @@ A rate limit controls speed; a usage limit controls how much one caller can spen
 - For each, name: the per-caller rate, the per-account **daily/monthly quota**, the plan limit, and a **global hard
   cap**. Anonymous callers get the tightest.
 - **Direct calls cannot bypass it:** the cap sits in the server function that spends, not in the page.
+- **Mail to your own staff counts too.** A public request that emails every admin (a claim, a report, a contact
+  form) needs a limit; mail to admins is often exempt from the site's mail ceiling, so one caller can flood the inbox.
 - **Signing up is not free either:** unlimited accounts multiply per-account quotas.
 - **Provider-side caps and alerts:** list each provider where the owner should set a spending cap or billing alert.
   Name them; never change them.

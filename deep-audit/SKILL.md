@@ -69,10 +69,15 @@ For every write in the inventory, force a failure and check what the user is tol
 ### Pass L: concurrency and time
 
 - Two tabs on the same record: edit in both and save in both, in either order. Does the older tab overwrite newer work, or wind a counter back?
-- A double click or double submit on every button that writes.
+- **A wipe in one tab, an edit in another.** "Clear all data" in tab 1, then any edit in tab 2: storage must stay empty. Pages that hold state in memory and write it back whole, with no `storage` event listener, quietly undo the wipe.
+- A double click or double submit on every button that writes, **and on every export or download button**: two PDFs from one click is a fault. Test with a complete record; a warning dialog on an incomplete one can hide the bug.
+- **Two saves before the first reply** (a double Ctrl+S): both carry the same base version, so the second gets a false "changed somewhere else" and the edit between them is lost. A save must not be sent while another with the same base is in flight.
 - Two saves in the same second, if a stale-tab check relies on timestamps.
-- Two requests that spend the same balance, credit or number at once.
-- Dates: UTC compared with local business days, evening payments in other time zones, DST changes, 29 Feb, month ends, and impossible dates (31 Feb, 2030-02-31, "hello").
+- **Every writer of a version timestamp moves it forward.** If one writer sets `updated_at = now` while another bumps it ahead, the version goes backwards and a stale tab's save passes the check. Run a burst of saves, then the other writer (rename, status change), and compare.
+- **Old saved data with no version at all** (drafts or autosaves from before versioning) must still get the stale check, not skip it.
+- Two requests that spend the same balance, credit, claim or number at once. "Count, then update" without a lock lets one account win twice.
+- Dates: UTC compared with local business days, evening payments in other time zones, DST changes, 29 Feb, month ends. Fix the clock at a UTC+11 morning and a UTC-8 evening: every printed "today" must be the local date (`toISOString().slice(0,10)` is the UTC one).
+- Impossible dates (31 Feb, 2026-13-05, "hello") **on every path, including restore and import**. A shape-only check like `^\d{4}-\d{2}-\d{2}$` lets them through to print, and then they get compared as text.
 
 ### Pass M: errors and recovery
 
@@ -81,7 +86,8 @@ For every error message in the inventory, and every one you can set off:
 - the app does not crash, go blank or end on a white page (check for a React error boundary, PHP fatal errors and uncaught promises);
 - there is always a way out: Retry, Back to where they were, or "Something went wrong, return home";
 - any spinner or "Sending…" state times out into an error the user can act on;
-- the error says what to do, and leaks no stack trace, path, SQL or key.
+- the error says what to do, and leaks no stack trace, path, SQL or key;
+- **the fatal-error handler survives running out of memory.** Exhaust memory in a request (a list that loads every row at once is the usual cause): the answer must still be the error page or JSON. A PHP shutdown handler needs a reserved memory buffer it frees first, or it dies too.
 
 An error with no way out is a finding (P2 when it is on a customer path).
 
@@ -91,7 +97,7 @@ On the local copy, put every field and form in the inventory through the followi
 - empty, whitespace only, 1 character, 10,000 or more characters, emoji, right-to-left text, combining characters, a NUL byte;
 - HTML and script, SQL and shell metacharacters, path traversal, CSV formula starts (`=`, `+`, `-`, `@`);
 - the wrong type (array, object or number where text is expected, and the reverse), and a missing or extra field;
-- numbers: negative, 0, huge (`1e200`), NaN or Infinity text, scientific notation, junk after the digits, many decimals;
+- numbers: negative, 0, huge (`1e200`), NaN or Infinity text, scientific notation, junk after the digits, many decimals. **Every money field** (amount paid, deposit, discount, not only line prices) gets the same ceiling and the same pre-export check: 10 times the total must warn, not print "Paid in full", and `1e200` must never print in exponent form;
 - uploads: everything in RULE-KIT pass B's crafted set;
 - missing or wrong CSRF token, another user's IDs (IDOR), a signed-out session, an expired session.
 

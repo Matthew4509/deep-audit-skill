@@ -23,7 +23,7 @@ Steps
    - The project's own tests: run them, break one on purpose to prove they can fail.
    - Cost: every paid call or email has a per-user quota and a global cap.
    - Failure injection: make every write fail (storage full, timeout, HTML or empty reply, crash mid-restore). The user must be told the truth and lose nothing.
-   - Concurrency and time: two tabs, double clicks, same-second saves, time zones, DST, 29 Feb, impossible dates.
+   - Concurrency and time: two tabs (including a wipe in one and an edit in the other), double clicks on save and export buttons, two saves before the first reply, version timestamps that move backwards, two requests spending the same thing, a printed "today" in the UTC date, time zones, DST, 29 Feb, impossible dates on import paths too.
    - Errors: each error shows once, never ends on a blank page, always offers a way out, and leaks no paths or stack traces.
    - Hostile input on every field: empty, huge, emoji, wrong type, markup, formula starts, odd numbers, bad CSRF, other users' IDs.
 5. For every finding: a failing test saved outside the project, a search for the same pattern elsewhere, file:line evidence, and a severity from P0 to P3 based on who is hit and how often.
