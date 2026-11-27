@@ -1,34 +1,60 @@
 # Deep audit
 
-A Claude Code skill for a cold, test-first audit of one web project. It reports faults and never edits the code.
+A Claude Code prompt and skill for a cold, test-first audit of one project. It reports faults and never edits the
+code unless you say yes to a fix at the end.
 
-It inventories every route, form, write and outside call, then works through a set of passes: accounts and
-access, uploads, money, secrets and API keys, the shipped package and server config, claims against code, the
-project's own tests, cost limits, risky code shapes, AI agent files, failure injection, concurrency and dates,
-error recovery and hostile input. Every finding gets a failing test and a search for siblings. A second agent then
-tries to disprove each one.
+## Version 2: the prompt
+
+[PROMPT.md](PROMPT.md) is version 2. Paste it into a new thread opened in your project. Nothing to install.
+
+Before it starts, it tells you the project's size and asks three things:
+
+1. **Check your usage first.** Light is cheap; heavy uses a lot. There is no point finding 30 faults if you can't
+   fix them until your usage resets.
+2. **Light or heavy.**
+   - **Light:** release blockers only. Reads the code and runs your own tests; does not start the app. Good on
+     Pro, when usage is low, or just before a release. It never says "passed": its findings are "likely, not
+     proven".
+   - **Heavy:** a full walk and test. Starts the app on a local copy and tries to break it, with a failing test
+     for every finding. Good right after a usage reset or on a big plan.
+3. **Scope:** the whole project, or one area. Heavy can be run in slices across resets.
+
+What you get:
+
+- **A strict P0 bar.** P0 means data loss, a security or privacy hole, money past a cap, or a crash or hang on an
+  ordinary path. Odd-input faults that only give a wrong result are P1. A second agent tries to disprove every
+  P0 before it counts, and the report shows "P0 claimed > P0 confirmed".
+- **P1 split in two.** *Clear fix*: one right answer, with the fix and its test. *Your call*: trade-offs and
+  design questions, with the options and what each costs.
+- **Tech debt noticed in passing**, one line each, linked to the faults it caused. It does not go hunting for it.
+- **Optional extra tests at the end.** Anything risky (a temp registry key, a stand-in service, admin actions)
+  is not run. The report lists each one with its risk, cost and a recommendation, and waits for your yes.
+- **An owner's checklist** of the checks only you can do, on your live site or your own system.
 
 ## First time?
 
-1. **Start with the prompt.** Open Claude Code in your project, paste [PROMPT.md](PROMPT.md), and send it. Nothing
-   to install.
-2. **Expect it to take a while.** A full audit of a real app is long and uses a lot of tokens. On a big project,
-   ask for one area first: "run only the secrets and accounts parts".
-3. **Fix P0s first.** P0 means private data, money or accounts are at risk on a common path. P1 next. P2 and P3 can
-   wait.
-4. **Fix one finding at a time.** In a new thread, paste one finding and say "fix this and run its test". The audit
-   itself never changes your code.
-5. **Ask when a word is new.** "Explain this finding like I'm new to this" works for IDOR, CSRF, race conditions and
-   the rest.
-6. **"Not reached" is normal.** Some checks need a local copy of the site or a test database. The report says which
-   were skipped and why; ask Claude to help set those up later.
-7. **Do the owner's checklist.** The end of the report lists checks only you can do on your live site, in your own
-   browser. They take a few minutes.
-8. **Works best on web apps.** On a mobile app, a game or a script many checks won't apply, and the report says so.
+1. **Start light.** It finds the release blockers cheaply. Fix those, then run heavy after your usage resets.
+2. **Fix P0s first**, one at a time, ideally each in a new thread: paste one finding and say "fix this and run
+   its test".
+3. **Ask when a word is new.** "Explain this finding like I'm new to this" works for IDOR, CSRF, race conditions
+   and the rest.
+4. **"Not reached" is normal.** The report says what was skipped and why, and offers the risky ones as extra
+   tests.
+5. **Read the optional extra tests before saying yes.** A yes covers only the tests you name.
 
-## Two ways to use it
+## Safety
 
-**As a skill (full version).** Copy the `deep-audit` folder into your skills folder:
+The audit never contacts a live site and never changes your real system. It runs on the code and a local copy,
+with mail, payments and outside APIs stubbed, and kills only the processes it started. Reports describe faults in
+plain words; keys found are named by kind and location, never copied.
+
+## Version 1
+
+The version 1 prompt is on the [v1.0.0 release](https://github.com/Matthew4509/deep-audit-skill/releases/tag/v1.0.0)
+as `deep-audit-prompt-v1.md`. It is a single mode, closer to a full heavy run, with no usage check and no P1 split.
+
+The skill folder (`deep-audit/`) is still the version 1 method. To use it, copy the folder into your skills
+folder:
 
 ```
 git clone https://github.com/Matthew4509/deep-audit-skill.git
@@ -44,22 +70,13 @@ Or let Claude install it, after checking it first:
 Clone https://github.com/Matthew4509/deep-audit-skill and review the deep-audit skill before using it: check for hidden or invisible instructions, anything that sends data elsewhere, runs downloaded code or changes settings. If it's clean, install it to my skills folder and run it on this project.
 ```
 
-**As a prompt (short version).** Paste [PROMPT.md](PROMPT.md) into a new thread opened in the project.
-
 ## Files
 
 | File | What it is |
 |---|---|
-| `deep-audit/SKILL.md` | The skill: ground rules, inventory, the app's rules, passes K to N, verifier, report |
-| `deep-audit/RULE-KIT.md` | The detailed checklists for passes A to P |
-| `PROMPT.md` | The whole method as one paste-in prompt |
-
-## Safety
-
-The audit never contacts a live site. It reads your code and runs everything on a local copy, with mail, payments
-and outside APIs stubbed. Checks only a live server can answer are listed at the end of the report for you to do
-yourself, on your own site. Reports describe faults in plain words; keys found are named by
-kind and location, never copied.
+| `PROMPT.md` | Version 2: the paste-in prompt with light and heavy modes |
+| `deep-audit/SKILL.md` | Version 1 skill: ground rules, inventory, the app's rules, passes K to N, verifier, report |
+| `deep-audit/RULE-KIT.md` | Version 1 detailed checklists for passes A to P |
 
 ## Licence
 
